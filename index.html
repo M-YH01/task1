@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>나를 소개합니다</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #f5f7fa;
+      font-family: Arial, "Malgun Gothic", sans-serif;
+      color: #222;
+    }
+
+    .container {
+      width: min(90%, 700px);
+      background: #fff;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+    }
+
+    h1 {
+      margin-top: 0;
+      text-align: center;
+      font-size: 30px;
+    }
+
+    .intro {
+      text-align: center;
+      color: #555;
+      margin-bottom: 35px;
+    }
+
+    section {
+      margin-top: 28px;
+    }
+
+    h2 {
+      font-size: 20px;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #eee;
+    }
+
+    ul {
+      line-height: 1.9;
+      padding-left: 24px;
+    }
+
+    .private {
+      color: #777;
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <h1>나를 소개합니다</h1>
+    <p class="intro">이 페이지는 모두에게 나를 보여주기 위한 것이다.</p>
+
+    <section>
+      <h2>공개할 것</h2>
+      <ul>
+        <li>이름: 김OO</li>
+        <li>나이: 31</li>
+        <li>최종학력: 대졸</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>공개하지 않을 것</h2>
+      <ul class="private">
+        <li>학교 이름</li>
+        <li>얼굴</li>
+        <li>연락처</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>
