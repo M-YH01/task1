@@ -56,8 +56,35 @@
       padding-left: 24px;
     }
 
+    /* '공개하지 않을 것' 섹션 숨김 처리 */
+    .private-section {
+      display: none;
+    }
+
     .private {
       color: #777;
+    }
+
+    /* 표 스타일 설정 */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: left;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    th {
+      background-color: #f8f9fa;
+      font-weight: bold;
+      text-align: center;
+      color: #333;
     }
   </style>
 </head>
@@ -75,13 +102,45 @@
       </ul>
     </section>
 
-    <section>
+    <!-- '공개하지 않을 것' 항목은 화면에 보이지 않도록 display: none 스타일 적용 -->
+    <section class="private-section">
       <h2>공개하지 않을 것</h2>
       <ul class="private">
         <li>학교 이름</li>
         <li>얼굴</li>
         <li>연락처</li>
       </ul>
+    </section>
+
+    <!-- 강점 3가지 표 작성 섹션 -->
+    <section>
+      <h2>나의 강점 3가지</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>언제·어디서 있었는가</th>
+            <th>내가 실제로 무엇을 했는가</th>
+            <th>어떤 결과가 생겼는가</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>2주일 전, 집에서</td>
+            <td>SKT_ALEPH 교육을 신청했다</td>
+            <td>목표를 정하고, 이를 달성하기 위한 첫걸음을 시작했다</td>
+          </tr>
+          <tr>
+            <td>일주일 전, 대전 시청역 근처에서</td>
+            <td>고메스퀘어가 어디 있는지를 물어보는 어르신께 알려드렸다</td>
+            <td>모르는 사람들에게도 친절할 수 있다</td>
+          </tr>
+          <tr>
+            <td>3일 전, 집에서</td>
+            <td>여행 다녀오신 부모님을 위해 공항에 마중나가고, 밥을 차려드렸다</td>
+            <td>내 주변 가까운 사람들을 소중히 대한다</td>
+          </tr>
+        </tbody>
+      </table>
     </section>
   </main>
 </body>
