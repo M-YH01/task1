@@ -1,0 +1,292 @@
+<title>25초 회피</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap">
+<style>
+  :root{
+    --paper:#efece4;
+    --ink:#16181c;
+    --muted:#8b887e;
+    --line:#c9c5ba;
+    --danger:#d93b26;
+    --player:#1d4ed8;
+  }
+  *{box-sizing:border-box}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+    height:100vh;
+    height:100dvh;
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:16px;
+  }
+  /* 화면 높이에 맞춰 폭을 정해 두면 어떤 해상도에서도 잘리거나 넘치지 않는다 */
+  .wrap{
+    display:flex;flex-direction:column;gap:10px;
+    width:min(380px, calc((100dvh - 190px) * 0.75), calc(100vw - 32px));
+  }
+  header{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+  h1{font-size:15px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin:0}
+  .clock{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+  .bar{height:4px;background:var(--line);position:relative;overflow:hidden}
+  .bar i{position:absolute;inset:0 100% 0 0;background:var(--ink);transition:right .1s linear}
+  .stage{position:relative;border:2px solid var(--ink);background:var(--paper);aspect-ratio:3/4}
+  canvas{display:block;width:100%;height:100%}
+  .overlay{
+    position:absolute;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:14px;text-align:center;
+    background:color-mix(in srgb,var(--paper) 88%,transparent);padding:20px;
+  }
+  .overlay[hidden]{display:none}
+  .big{font-size:22px;font-weight:700;letter-spacing:.06em;margin:0}
+  .sub{font-size:12px;color:var(--muted);line-height:1.7;margin:0;max-width:26ch}
+  .best{font-size:11px;color:var(--muted);letter-spacing:.04em;margin:-4px 0 0}
+  .best b{color:var(--ink);font-variant-numeric:tabular-nums}
+  button{
+    font:inherit;font-weight:700;font-size:13px;letter-spacing:.1em;
+    padding:10px 22px;border:2px solid var(--ink);background:var(--ink);
+    color:var(--paper);cursor:pointer;text-transform:uppercase;
+  }
+  button:hover{background:var(--paper);color:var(--ink)}
+  button:focus-visible{outline:3px solid var(--player);outline-offset:3px}
+  footer{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);letter-spacing:.06em}
+  .hud{display:flex;align-items:baseline;gap:14px;font-variant-numeric:tabular-nums}
+  .score{font-size:15px;font-weight:700}
+  .score small{font-size:10px;font-weight:400;color:var(--muted);letter-spacing:.1em;margin-right:4px}
+  .log{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:8px}
+  .log h2{margin:0;font-size:10px;font-weight:400;letter-spacing:.14em;color:var(--muted);text-transform:uppercase}
+  .runs{display:grid;grid-template-columns:repeat(10,1fr);gap:3px}
+  .run{
+    height:26px;display:flex;align-items:center;justify-content:center;
+    font-size:10px;font-weight:700;font-variant-numeric:tabular-nums;
+    border:1px solid var(--line);color:var(--muted);background:transparent;
+  }
+  .run.w{background:var(--player);border-color:var(--player);color:var(--paper)}
+  .run.l{background:var(--danger);border-color:var(--danger);color:var(--paper)}
+  .win .big{color:var(--player)}
+  .lose .big{color:var(--danger)}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>25초 회피</h1>
+    <span class="hud">
+      <span class="score" id="score"><small>SCORE</small>0</span>
+      <span class="clock" id="clock">25.0</span>
+    </span>
+  </header>
+  <div class="bar"><i id="fill"></i></div>
+
+  <div class="stage">
+    <canvas id="cv" width="360" height="480"></canvas>
+    <div class="overlay" id="ov">
+      <p class="big" id="ovTitle">피하세요</p>
+      <p class="sub" id="ovText">← → 또는 A / D 키로 원을 좌우로 움직여 떨어지는 네모를 피하세요. 25초 버티면 성공.</p>
+      <button id="btn">시작</button>
+      <p class="best" id="best" hidden>역대 최고 <b id="bestVal">0</b>점</p>
+    </div>
+  </div>
+
+  <footer><span>← →  이동</span><span>SPACE 시작 / 일시정지</span></footer>
+
+  <section class="log">
+    <h2>최근 10회 · 왼쪽이 최신</h2>
+    <div class="runs" id="runs"></div>
+  </section>
+</div>
+
+<script>
+(function(){
+  var cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+  var W=cv.width, H=cv.height;
+  var clock=document.getElementById('clock'), fill=document.getElementById('fill');
+  var ov=document.getElementById('ov'), ovT=document.getElementById('ovTitle'),
+      ovX=document.getElementById('ovText'), btn=document.getElementById('btn');
+  var GOAL=25, R=13, SPEED=250;
+  var css=getComputedStyle(document.documentElement);
+  var INK=css.getPropertyValue('--ink').trim()||'#16181c';
+  var DANGER=css.getPropertyValue('--danger').trim()||'#d93b26';
+  var PLAYER=css.getPropertyValue('--player').trim()||'#1d4ed8';
+
+  var scoreEl=document.getElementById('score'), runsEl=document.getElementById('runs');
+  var bestEl=document.getElementById('best'), bestValEl=document.getElementById('bestVal');
+  var KEY='dodge25.runs.v1', BEST_KEY='dodge25.best.v1', PER_DODGE=10;
+
+  var state='idle', x=W/2, t=0, boxes=[], spawn=0, left=false, right=false, last=0, score=0, shownScore=-1;
+  var runs=load();
+  var best=loadBest();
+
+  function loadBest(){
+    try{ var n=Number(localStorage.getItem(BEST_KEY)); return isFinite(n) && n>0 ? n : 0; }
+    catch(e){ return 0; }
+  }
+  function saveBest(){ try{ localStorage.setItem(BEST_KEY, String(best)); }catch(e){} }
+
+  function load(){
+    try{
+      var v=JSON.parse(localStorage.getItem(KEY));
+      if(!Array.isArray(v)) return [];
+      return v.filter(function(r){
+        return r && typeof r.score==='number' && typeof r.won==='boolean';
+      }).slice(0,10);
+    }catch(e){ return []; }
+  }
+  function save(){
+    // 가장 최신 기록이 앞에 오도록 정리한 뒤 즉시 기록해 새로고침·재접속 후에도 남는다
+    try{ localStorage.setItem(KEY, JSON.stringify(runs.slice(0,10))); }catch(e){}
+  }
+
+  function renderBest(){
+    if(best>0){ bestValEl.textContent=best; bestEl.hidden=false; }
+    else{ bestEl.hidden=true; }
+  }
+
+  function renderRuns(){
+    runsEl.textContent='';
+    for(var i=0;i<10;i++){
+      var d=document.createElement('div');
+      var r=runs[i];
+      d.className='run'+(r? (r.won?' w':' l') : '');
+      d.textContent = r ? r.score : '–';
+      d.title = r ? ((r.won?'성공':'실패')+' · '+r.score+'점') : '기록 없음';
+      runsEl.appendChild(d);
+    }
+  }
+
+  function reset(){ x=W/2; t=0; boxes=[]; spawn=0; score=0; }
+
+  var INTRO='← → 또는 A / D 키로 원을 좌우로 움직여 떨어지는 네모를 피하세요. 25초 버티면 성공.';
+
+  function intro(){
+    reset(); state='idle';
+    ov.hidden=false; ov.classList.remove('win','lose');
+    ovT.textContent='피하세요';
+    ovX.textContent=INTRO;
+    btn.textContent='시작';
+    renderBest();
+    draw(); hud();
+    btn.focus({preventScroll:true});
+  }
+
+  function start(){
+    reset(); run();
+  }
+
+  function run(){
+    state='play'; ov.hidden=true; ov.classList.remove('win','lose');
+    left=false; right=false;
+    last=performance.now(); requestAnimationFrame(loop);
+  }
+
+  function pause(){
+    if(state!=='play') return;
+    state='pause'; left=false; right=false;
+    ov.hidden=false;
+    ovT.textContent='일시정지';
+    ovX.textContent='SPACE 또는 아래 버튼으로 이어서 진행합니다.';
+    btn.textContent='계속하기';
+    btn.focus({preventScroll:true});
+  }
+  function finish(won){
+    state='over'; ov.hidden=false; ov.classList.add(won?'win':'lose');
+    ovT.textContent = won ? '성공' : '실패';
+    ovX.textContent = (won ? '25초를 모두 버텼습니다. '
+                           : t.toFixed(1)+'초에서 맞았습니다. ') + score+'점 (피한 투사체 '+(score/PER_DODGE)+'개)';
+    runs.unshift({won:won, score:score, t:Math.round(t*10)/10});
+    runs=runs.slice(0,10); save(); renderRuns();
+    if(score>best){ best=score; saveBest(); }
+    renderBest();
+    btn.textContent='메인으로';
+    btn.focus({preventScroll:true});
+  }
+
+  function spawnBox(){
+    var w = 24 + Math.random()*70;
+    boxes.push({x:Math.random()*(W-w), y:-40, w:w, h:16+Math.random()*22,
+                v:110 + Math.random()*90 + t*5});
+  }
+
+  function step(dt){
+    t += dt;
+    var dir = (right?1:0)-(left?1:0);
+    x += dir*SPEED*dt;
+    x = Math.max(R, Math.min(W-R, x));
+
+    spawn -= dt;
+    if(spawn<=0){ spawnBox(); spawn = Math.max(0.14, 0.62 - t*0.017); }
+
+    var py = H-34;
+    for(var i=boxes.length-1;i>=0;i--){
+      var b=boxes[i]; b.y += b.v*dt;
+      if(b.y>H+60){ boxes.splice(i,1); score+=PER_DODGE; continue; }
+      var cx=Math.max(b.x, Math.min(x, b.x+b.w));
+      var cy=Math.max(b.y, Math.min(py, b.y+b.h));
+      var dx=x-cx, dy=py-cy;
+      if(dx*dx+dy*dy < R*R){ draw(); finish(false); return; }
+    }
+    if(t>=GOAL){ draw(); finish(true); return; }
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle=DANGER;
+    for(var i=0;i<boxes.length;i++){ var b=boxes[i]; ctx.fillRect(b.x|0,b.y|0,b.w|0,b.h|0); }
+    ctx.fillStyle=PLAYER;
+    ctx.beginPath(); ctx.arc(x, H-34, R, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle=INK; ctx.fillRect(0,H-18,W,2);
+  }
+
+  function hud(){
+    var left_s=Math.max(0, GOAL-t);
+    clock.textContent=left_s.toFixed(1);
+    if(score!==shownScore){ shownScore=score; scoreEl.innerHTML='<small>SCORE</small>'+score; }
+    fill.style.right=(100 - Math.min(100, t/GOAL*100)).toFixed(1)+'%';
+  }
+
+  function loop(now){
+    if(state!=='play'){ hud(); return; }
+    var dt=Math.min(0.05,(now-last)/1000); last=now;
+    step(dt);
+    if(state==='play'){ draw(); hud(); requestAnimationFrame(loop); }
+    else hud();
+  }
+
+  addEventListener('keydown',function(e){
+    if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A') left=true;
+    if(e.key==='ArrowRight'||e.key==='d'||e.key==='D') right=true;
+    if(e.code==='Space'){
+      e.preventDefault();
+      if(state==='play') pause();
+      else if(state==='pause') run();
+      else if(state==='over') intro();
+      else start();
+    }
+  });
+  addEventListener('keyup',function(e){
+    if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A') left=false;
+    if(e.key==='ArrowRight'||e.key==='d'||e.key==='D') right=false;
+  });
+  btn.addEventListener('click',function(){
+    if(state==='over') intro();
+    else if(state==='pause') run();
+    else start();
+  });
+
+  // 포커스를 잃으면 자동 일시정지 — 상태와 남은 시간은 그대로 유지된다
+  addEventListener('blur',pause);
+  document.addEventListener('visibilitychange',function(){ if(document.hidden) pause(); });
+
+  // 터치 드래그만 허용 (마우스로는 이동 불가)
+  cv.addEventListener('pointermove',function(e){
+    if(state!=='play') return;
+    if(e.pointerType!=='touch' && e.pointerType!=='pen') return;
+    var r=cv.getBoundingClientRect();
+    x=Math.max(R,Math.min(W-R,(e.clientX-r.left)/r.width*W));
+  });
+  cv.addEventListener('touchmove',function(e){e.preventDefault();},{passive:false});
+
+  renderRuns(); renderBest(); draw(); hud();
+})();
+</script>
